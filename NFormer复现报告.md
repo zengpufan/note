@@ -42,3 +42,9 @@ Top-k 准确率 衡量的是：对于每个查询图像，模型返回的前k个
 ![](./NFormer复现报告/table2.png)  
 实验日志数据和模型权重均在附件中
 
+
+
+# NFormer代码精读
+NFormer代码用到了Ignite框架，需要在学习Ignite框架的基础上进一步学习。
+# model模块解析
+
