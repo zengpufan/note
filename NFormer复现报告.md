@@ -48,3 +48,48 @@ Top-k 准确率 衡量的是：对于每个查询图像，模型返回的前k个
 NFormer代码用到了Ignite框架，需要在学习Ignite框架的基础上进一步学习。
 # model模块解析
 
+## NFormer对Market1501数据集的预处理流程
+
+#### backbone模型的运行流程
+```py
+## format: [B,C,W,H]
+back_bone_input_size: torch.Size([64, 3, 256, 128])
+shape_after_backbone: torch.Size([64, 2048, 16, 8])
+shape_after_gap: torch.Size([64, 2048, 1, 1])
+then, resize the shape to [64,2048]
+then, forward to a linear layer, and reshape to [64,256]
+
+then, classify every feature vector, the shape of the finnal result is [64,751]
+the vector above is the probility of the identity of people
+when training the backbone, we can calculate the loss from the vector of shape[64,751]
+when training the NFormer, we should remove the linear layer
+```
+### NFormer模型的运行流程
+```py
+# 从backbone中得到的结果是[B,256]
+# 在nformer.py中，首先将输入拼接到一起，得到的维度是
+[2,7000,256] #（B，B，C）
+# 之后送入LAA网络
+
+
+```
+### 从backbone中得到结果后的后处理过程
+    
+从backbone中得到提取出来的特征之后，需要计算特征之间的欧氏距离，选取欧式距离最小的向量
+```py
+
+
+
+# 计算欧式距离中的平方项
+distmat = torch.pow(qf, 2).sum(dim=1, keepdim=True).expand(m, n) + \
+            torch.pow(gf, 2).sum(dim=1, keepdim=True).expand(n, m).t()
+# 计算欧式距离中的-2xy项
+distmat.addmm_(1, -2, qf, gf.t())  
+```
+
+## train 脚本的运行流程
+```py
+[Experiment-all_tricks-tri_center-market.sh] python3 tools/train.py
+[tools/train.py] main() call tools.train.train 
+
+```
