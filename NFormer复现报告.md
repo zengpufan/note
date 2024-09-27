@@ -50,10 +50,14 @@ NFormer代码用到了Ignite框架，需要在学习Ignite框架的基础上进�
 
 ## NFormer对Market1501数据集的预处理流程
 
+## 代码默认配置的大致训练流程
+- 先进行120轮训练，主要是对backbone进行训练。训练时，将行人和对应的行人编号作为监督学习训练数据，计算出loss。每隔5轮进行测试，测试时提取测试集和gallary的特征，然后将特征进行匹配，计算出rank和mAP。
+- 然后进行20轮训练，将backbone进行冻结，对NFormer进行训练。
+
 #### backbone模型的运行流程
 ```py
 ## format: [B,C,W,H]
-back_bone_input_size: torch.Size([64, 3, 256, 128])
+backbone_input_size: torch.Size([64, 3, 256, 128])
 shape_after_backbone: torch.Size([64, 2048, 16, 8])
 shape_after_gap: torch.Size([64, 2048, 1, 1])
 then, resize the shape to [64,2048]
@@ -70,6 +74,30 @@ when training the NFormer, we should remove the linear layer
 # 在nformer.py中，首先将输入拼接到一起，得到的维度是
 [2,7000,256] #（B，B，C）
 # 之后送入LAA网络
+class NFormer(nn.Module):
+    """ NFormer model """
+    def forward(self, x):
+        #  x : [2, 7000, 256] 
+        _, rns_indices = torch.topk(torch.bmm(x/torch.norm(x,p=2,dim=2,keepdim=True),(x/torch.norm(x,p=2,dim=2,keepdim=True)).transpose(1,2)), self.topk, dim=2) 
+        #  x : [2, 7000, 256]
+        # rns_indices : [2, 7000, 20]
+        for block in self.h:
+            x = block(x, self.num_landmark, rns_indices)
+        # x : [2, 7000, 256]
+        bs,dl,d = x.shape
+        x = x.reshape(bs*dl,d)
+        # x : [14000, 256]
+        feat = self.bottleneck(x)
+        # feat : [14000, 256]
+        cls_score = self.classifier(feat)
+        x = x.reshape(bs,dl,d)
+        feat = feat.reshape(bs,dl,d)
+        cls_score = cls_score.reshape(bs,dl,-1)
+
+        if self.training:
+            return cls_score, x
+        else:
+            return feat
 
 
 ```
@@ -77,9 +105,6 @@ when training the NFormer, we should remove the linear layer
     
 从backbone中得到提取出来的特征之后，需要计算特征之间的欧氏距离，选取欧式距离最小的向量
 ```py
-
-
-
 # 计算欧式距离中的平方项
 distmat = torch.pow(qf, 2).sum(dim=1, keepdim=True).expand(m, n) + \
             torch.pow(gf, 2).sum(dim=1, keepdim=True).expand(n, m).t()
