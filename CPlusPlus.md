@@ -75,10 +75,10 @@ using namespace_name::member_name
 
 
 ## 重载、覆盖与遮蔽
-- 重载是指不同函数头的函数可以共存，在编译期自动选择相应的函数。重载函数必须卸载同一个类中，父类和子类不能构成重载（但是同一层的类可以构成重载）。
+- 重载是指**不同函数头**的函数可以共存，在编译期自动选择相应的函数。重载函数必须卸载同一个类中，父类和子类不能构成重载（但是同一层的类可以构成重载）。
 - 重载的判断标准（满足如下条件之一即可构成重载）：变量列表、变量类型、顺序、函数被const修饰（变量被const修饰不能构成重载）（仅返回值不同不能构成重载）
-- 覆盖是指相同函数名的虚函数可以共存，在运行时动态绑定。
-- 遮蔽是指相同函数名的非虚函数，子类的会遮蔽父类的，在编译期选择。注意，遮蔽只要是父子类有相同函数名（不需要参数列表返回值相同）就可以构成遮蔽。
+- 覆盖是指相同函数名的虚函数可以共存，在**运行时动态绑定（基类指针根据实际的覆盖情况选择）**。
+- 遮蔽是指相同函数名的非虚函数，子类的会遮蔽父类的，在**编译期选择（直接调用和指针类型相同的函数）**。注意，遮蔽只要是父子类有相同函数名（不需要参数列表返回值相同）就可以构成遮蔽。
 - 我们可以将继承关系抽象成一个树，或者一个图。编译器在查找方法时，会沿着最底层的派生类一层一层向上寻找，如果在某一层有两个‘函数头相同的函数’，那么就会产生二义性。但是在不同的层上有无法区别的函数，则不会产生二义性。
 
 ## 抽象类
@@ -241,4 +241,89 @@ template <模板参数表>
 - 类模版还可以有非类型的参数，成为函数类型参数（就是有类型的参数）。
 # 8.UML
 
+# 9.STL
+## 容器
+- 序列式容器：
+```cpp
+std::vector
+std::list
+std::deque
+```
+- 关联式容器
+```cpp
+std::set
+std::map
+std::unordered_map
+std::unordered_set
+std::multiset
+std::multimap<int,int>
+```
+- 容器适配器
+```cpp
+std::stack
+std::queue
+std::priority_queue
+```
+## 容器的遍历
+容器的遍历需要是可迭代的容器，队列和栈不可迭代。
+```cpp
+int main() {
+    std::vector<int> vec = {1, 2, 3};
+    for (const auto& num : vec) {
+        // num = 10; // 错误，不能修改常量引用所引用的对象
+        std::cout << num << " ";
+    }
+    for (auto num : vec) {
+        num = 10; 
+        std::cout << num << " ";
+    }
+    std::cout << std::endl;
+    return 0;
+}
+```
+## 迭代器
+迭代器类似于指针，用来访问容器中的元素，访问对应的元素需要加上*。
+```cpp
+begin()//返回第一个元素的迭代器
+end()//返回一个指向容器末尾的迭代器，但不是最后一个元素，是最后一个元素再向后一个。
+rbegin()//返回指向最后一个元素的迭代器
+```
+## algorithm
+```cpp
+std::sort
+std::stable_sort
+std::find
+std::binary_search
+std::accumulate
+```
+重写sort的排序算法
+```cpp
+// 定义自定义类型
+struct Person {
+    std::string name;
+    int age;
+};
+
+// 使用 Lambda 表达式按年龄降序排序
+int main() {
+    std::vector<Person> people = {
+        {"Alice", 25},
+        {"Bob", 20},
+        {"Charlie", 30}
+    };
+    std::sort(people.begin(), people.end(), [](const Person& a, const Person& b) {
+        return a.age > b.age;
+    });
+    for (const auto& person : people) {
+        std::cout << person.name << " (" << person.age << ") ";
+    }
+    std::cout << std::endl;
+    return 0;
+}
+```
 # 10.CPP新特性
+
+## lambda函数
+```cpp
+[capture list] (parameter list) -> return type { function body }
+```
