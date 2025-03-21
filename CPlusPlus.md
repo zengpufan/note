@@ -281,12 +281,21 @@ int main() {
     return 0;
 }
 ```
+## 改变容器和算法的排列顺序
+```cpp
+std::set<int, std::greater<int>>
+std::sort(numbers.begin(), numbers.end(), std::greater<int>());
+```
 ## 迭代器
 迭代器类似于指针，用来访问容器中的元素，访问对应的元素需要加上*。
 ```cpp
 begin()//返回第一个元素的迭代器
 end()//返回一个指向容器末尾的迭代器，但不是最后一个元素，是最后一个元素再向后一个。
 rbegin()//返回指向最后一个元素的迭代器
+```
+```cpp
+std::prev()
+std::next()
 ```
 ## algorithm
 ```cpp
@@ -321,9 +330,41 @@ int main() {
     return 0;
 }
 ```
+```cpp
+//lower_bound和upper_bound函数
+
+template< class ForwardIt, class T >
+ForwardIt lower_bound( ForwardIt first, ForwardIt last, const T& value );
+
+template< class ForwardIt, class T, class Compare >
+ForwardIt lower_bound( ForwardIt first, ForwardIt last, const T& value, Compare comp );
+```
 # 10.CPP新特性
 
 ## lambda函数
 ```cpp
 [capture list] (parameter list) -> return type { function body }
+/*
+capture list：捕获列表，用于捕获外部变量，让 lambda 函数能够访问外部作用域的变量。
+parameter list：参数列表，和普通函数的参数列表类似。
+return type：返回类型，可省略，编译器能自动推导。
+function body：函数体，是 lambda 函数的具体实现。
+*/
+```
+lambda函数的递归调用
+```cpp
+#include <iostream>
+
+int main() {
+    auto factorial = [](auto&& self, int n) -> int {
+        if (n == 0) {
+            return 1;
+        }
+        return n * self(self, n - 1);
+    };
+
+    int result = factorial(factorial, 5);
+    std::cout << "5 的阶乘是: " << result << std::endl;
+    return 0;
+}
 ```
