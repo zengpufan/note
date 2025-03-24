@@ -202,4 +202,122 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
 ## Question 6: Softmax regression in C++
 ```cpp
 
+void softmax_regression_epoch_cpp(const float *X, const unsigned char *y,
+                                  float *theta, size_t m, size_t n, size_t k,
+                                  float lr, size_t batch)
+{
+    size_t num_examples = m;
+    size_t num_classes = k;
+    size_t input_dim = n;
+
+    auto mat_mul = [&](const float* X, const float* Y, float *res, size_t a, size_t b, size_t c) {
+        // X.shape=(a,b) Y.shape=(b,c)
+        std::memset(res, 0, sizeof(float)*a*c);
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < c; j++) {
+                for (size_t l = 0; l < b; l++) {
+                    res[i*c + j] += X[i*b + l] * Y[l*c + j];
+                }
+            }
+        }
+    };
+
+    auto mat_exp = [&](float* X, size_t a, size_t b) {
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < b; j++) {
+                X[i*b + j] = std::exp(X[i*b + j]);
+            }
+        }
+    };
+
+    auto mat_sum_row = [&](const float* X, size_t a, size_t b, float* sums) {
+        for (size_t i = 0; i < a; i++) {
+            sums[i] = 0;
+            for (size_t j = 0; j < b; j++) {
+                sums[i] += X[i*b + j];
+            }
+        }
+    };
+
+    auto mat_div_row = [&](float* X, const float* sums, size_t a, size_t b) {
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < b; j++) {
+                X[i*b + j] /= sums[i];
+            }
+        }
+    };
+
+    auto mat_add = [&](float* X, const float *Y, size_t a, size_t b) {
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < b; j++) {
+                X[i*b + j] += Y[i*b + j];
+            }
+        }
+    };
+
+    auto mul = [&](float* X, float op, size_t a, size_t b) {
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < b; j++) {
+                X[i*b + j] *= op;
+            }
+        }
+    };
+    auto mat_div = [&](float* X, float op, size_t a, size_t b) {
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < b; j++) {
+                X[i*b + j] /= op;
+            }
+        }
+    };
+
+    auto T = [&](const float *X, float *res, size_t a, size_t b) {
+        for (size_t i = 0; i < a; i++) {
+            for (size_t j = 0; j < b; j++) {
+                res[j*a + i] = X[i*b + j];
+            }
+        }
+    };
+
+    float *logits = new float[batch * num_classes];
+    float *I_y = new float[batch * num_classes];
+    float *delta = new float[input_dim * num_classes];
+    float *transposed_batch_x = new float[input_dim * batch];
+    float *row_sums = new float[batch];
+
+    for (size_t i = 0; i < num_examples; i += batch) {
+        size_t current_batch = (i + batch > num_examples) ? num_examples - i : batch;
+        const float *batch_x = X + i * input_dim;
+        const unsigned char *batch_y = y + i;
+
+        mat_mul(batch_x, theta, logits, current_batch, input_dim, num_classes);
+        mat_exp(logits, current_batch, num_classes);
+        mat_sum_row(logits, current_batch, num_classes, row_sums);
+        mat_div_row(logits, row_sums, current_batch, num_classes);
+
+        std::memset(I_y, 0, sizeof(float) * batch * num_classes);
+        for (size_t j = 0; j < current_batch; j++) {
+            I_y[j*num_classes + batch_y[j]] = 1;
+        }
+
+        T(batch_x, transposed_batch_x, current_batch, input_dim);
+
+        mul(I_y,-1,current_batch,num_classes);
+
+        mat_add(logits, I_y, current_batch, num_classes);
+
+        mat_mul(transposed_batch_x, logits, delta, input_dim, current_batch, num_classes);
+
+        mat_div(delta, static_cast<float>(current_batch), input_dim, num_classes);
+
+        mul(delta, -lr, input_dim, num_classes);
+
+        mat_add(theta, delta, input_dim, num_classes);
+    }
+
+    delete[] logits;
+    delete[] I_y;
+    delete[] delta;
+    delete[] transposed_batch_x;
+    delete[] row_sums;
+}
 ```
